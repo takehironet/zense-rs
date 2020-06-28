@@ -1,0 +1,9 @@
+[package]
+name = "zenseapi"
+version = "0.1.0"
+authors = ["Takehiro Matsushima"]
+edition = "2018"
+publish = false
+
+[dependencies]
+libc = "0.2"

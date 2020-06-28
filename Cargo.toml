@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "zenseapi-rs",
+    "zense-publisher-rs",
+]

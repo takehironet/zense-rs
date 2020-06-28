@@ -1,0 +1,9 @@
+[package]
+name = "zense-publisher-rs"
+version = "0.1.0"
+authors = ["takehiro"]
+edition = "2018"
+publish = false
+
+[dependencies]
+zenseapi = { path = "../zenseapi-rs" }
