@@ -7,3 +7,4 @@ publish = false
 
 [dependencies]
 libc = "0.2"
+zenseapi-sys = { path = "../zenseapi-sys" }

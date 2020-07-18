@@ -6,4 +6,4 @@ edition = "2018"
 publish = false
 
 [dependencies]
-zenseapi = { path = "../zenseapi-rs" }
+zenseapi = { path = "../zenseapi" }

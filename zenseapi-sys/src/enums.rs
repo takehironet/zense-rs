@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::os::raw::c_int;
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
@@ -19,12 +18,15 @@ pub enum ZenseError {
     InvalidCameraType,
     InvalidParams,
     Others,
-    FfiError, // Originally added
-    Unknown,  // Originally added
+    FfiError,
+    // Originally added
+    RuntimeError,
+    // Originally added
+    Unknown, // Originally added
 }
 
 impl ZenseError {
-    pub(crate) fn from_int(n: c_int) -> Self {
+    pub fn from_int(n: c_int) -> Self {
         match n {
             -1 => ZenseError::NoDeviceConnected,
             -2 => ZenseError::InvalidDeviceIndex,
@@ -42,13 +44,16 @@ impl ZenseError {
             -14 => ZenseError::InvalidCameraType,
             -15 => ZenseError::InvalidParams,
             -255 => ZenseError::Others,
+            254 => ZenseError::RuntimeError,
+            255 => ZenseError::FfiError,
             _ => ZenseError::Unknown,
         }
     }
 }
+
 #[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum DepthRange {
+pub enum PsDepthRange {
     Unknown = -1,
     NearRange = 0,
     MidRange,
@@ -63,7 +68,7 @@ pub enum DepthRange {
 
 #[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum DataMode {
+pub enum PsDataMode {
     DepthAndRgb30Fps = 0,
     IrAndRGB30Fps = 1,
     DepthAndIr30Fps,
@@ -76,7 +81,7 @@ pub enum DataMode {
 
 #[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum PropertyType {
+pub enum PsPropertyType {
     SerialNumber = 5,
     FirmwareVersion,
     HardwareVersion,
@@ -85,16 +90,17 @@ pub enum PropertyType {
     DepthRangeList,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum PropertyValue {
-    StringValue(CString),
+    StringValue(String),
     Uint8Value(u8),
     Int32ValueList(Vec<i32>),
 }
 
 #[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum FrameType {
+pub enum PsFrameType {
     DepthFrame = 0,
     IrFrame = 1,
     GrayFrame,
@@ -106,6 +112,7 @@ pub enum FrameType {
     WdrDepthFrame,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum SensorType {
     DepthSensor = 1,
@@ -114,7 +121,7 @@ pub enum SensorType {
 
 #[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum PixelFormat {
+pub enum PsPixelFormat {
     DepthMm16 = 0,
     Gray16 = 1,
     Gray8,
@@ -122,26 +129,30 @@ pub enum PixelFormat {
     Bgr888,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum FilterType {
+pub enum PsFilterType {
     ComputeRealDepthFilter,
     SmoothingFilter,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum WdrTotalRange {
+pub enum PsWdrTotalRange {
     WdrTotalRangeTwo = 2,
     WdrTotalRangeThree = 3,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum WdrStyle {
+pub enum PsWdrStyle {
     Fusion,
     Alternation,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum StreamType {
+pub enum PsStreamType {
     Depth,
     Ir,
     Rgb,
@@ -149,43 +160,47 @@ pub enum StreamType {
     Imu,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum Resolution {
+pub enum PsResolution {
     Res1920x1080,
     Res1280x720,
     Res640x480,
     Res640x360,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum LinkType {
+pub enum PsLinkType {
     Unknown,
     Usb,
     Socket,
     Mipi,
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum ConnectStatus {
+pub enum PsConnectStatus {
     ConnectUnknown,
     Unconnected,
     Connected,
     Opened,
 }
 
-impl ConnectStatus {
-    pub(crate) fn from_int(n: c_int) -> Self {
+impl PsConnectStatus {
+    pub fn from_int(n: c_int) -> Self {
         match n {
-            1 => ConnectStatus::Unconnected,
-            2 => ConnectStatus::Connected,
-            3 => ConnectStatus::Opened,
-            _ => ConnectStatus::ConnectUnknown,
+            1 => PsConnectStatus::Unconnected,
+            2 => PsConnectStatus::Connected,
+            3 => PsConnectStatus::Opened,
+            _ => PsConnectStatus::ConnectUnknown,
         }
     }
 }
 
+#[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum DeviceType {
+pub enum PsDeviceType {
     Unknown = -1,
     None = 0,
     DcamUpdate = 1,
@@ -199,20 +214,20 @@ pub enum DeviceType {
     Max,
 }
 
-impl DeviceType {
-    pub(crate) fn from_int(n: c_int) -> Self {
+impl PsDeviceType {
+    pub fn from_int(n: c_int) -> Self {
         match n {
-            0 => DeviceType::None,
-            1 => DeviceType::DcamUpdate,
-            305 => DeviceType::Dcam305,
-            500 => DeviceType::Dcam500,
-            700 => DeviceType::Dcam700,
-            710 => DeviceType::Dcam710,
-            800 => DeviceType::Dcam800,
-            801 => DeviceType::DcamMipi,
-            802 => DeviceType::Dcam800Lite,
-            803 => DeviceType::Max,
-            _ => DeviceType::Unknown,
+            0 => PsDeviceType::None,
+            1 => PsDeviceType::DcamUpdate,
+            305 => PsDeviceType::Dcam305,
+            500 => PsDeviceType::Dcam500,
+            700 => PsDeviceType::Dcam700,
+            710 => PsDeviceType::Dcam710,
+            800 => PsDeviceType::Dcam800,
+            801 => PsDeviceType::DcamMipi,
+            802 => PsDeviceType::Dcam800Lite,
+            803 => PsDeviceType::Max,
+            _ => PsDeviceType::Unknown,
         }
     }
 }
