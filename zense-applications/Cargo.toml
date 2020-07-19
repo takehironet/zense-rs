@@ -1,0 +1,13 @@
+[package]
+name = "zense-applications"
+version = "0.0.1"
+authors = ["Takehiro Matsushima"]
+edition = "2018"
+publish = false
+
+[[bin]]
+name = "zense-camera-params"
+path = "src/camera-params.rs"
+
+[dependencies]
+zenseapi = { path = "../zenseapi" }

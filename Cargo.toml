@@ -2,5 +2,5 @@
 members = [
     "zenseapi-sys",
     "zenseapi",
-    "zense-publisher-rs",
+    "zense-applications",
 ]
