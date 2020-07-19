@@ -1,3 +1,4 @@
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 use zenseapi_sys as raw;
@@ -31,16 +32,14 @@ pub fn get_device_count() -> ZenseResult<u32> {
     }
 }
 
-fn c_char_to_string(c_chars: &[c_char]) -> String {
-    c_chars
-        .iter()
-        .map(|&c| (c as u8) as char)
-        .collect::<String>()
+pub(crate) fn c_char_to_cstring(c_chars: &[c_char]) -> CString {
+    let cstr = unsafe { CStr::from_ptr(c_chars.as_ptr()) };
+    CString::from(cstr)
 }
 
 fn ps_device_info_to_device_info(ps_device_info: raw::types::PsDeviceInfo) -> DeviceInfo {
-    let uri = c_char_to_string(&ps_device_info.uri);
-    let fw = c_char_to_string(&ps_device_info.fw);
+    let uri = c_char_to_cstring(&ps_device_info.uri);
+    let fw = c_char_to_cstring(&ps_device_info.fw);
     DeviceInfo {
         session_count: ps_device_info.session_count as i64,
         device_type: DeviceType::from_int(ps_device_info.device_type),

@@ -1,6 +1,8 @@
 use std::os::raw::{c_char, c_float, c_int};
 
-use crate::enums::{GmmGainEffectiveTime, PsDepthRange, PsFrameType, PsPixelFormat};
+use crate::enums::{
+    GmmGainEffectiveTime, PsDepthRange, PsFrameType, PsPixelFormat, PsWdrTotalRange,
+};
 
 pub type PsReturnStatus = c_int;
 pub type PsDeviceHandle = *mut Device;
@@ -23,7 +25,7 @@ pub struct Device {
 }
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct PsFrame {
     pub frame_index: u32,
     pub frame_type: PsFrameType,
@@ -44,8 +46,8 @@ pub struct PsGmmGain {
     pub option: GmmGainEffectiveTime,
 }
 
-#[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
 pub struct PsCameraParameters {
     pub fx: f64,
     pub fy: f64,
@@ -59,4 +61,16 @@ pub struct PsCameraParameters {
     pub k4: f64,
     pub k5: f64,
     pub k6: f64,
+}
+
+#[repr(C, packed)]
+#[derive(Copy, Clone, Debug)]
+pub struct PsWdrOutputMode {
+    pub total_range: PsWdrTotalRange,
+    pub range1: PsDepthRange,
+    pub range1_count: u8,
+    pub range2: PsDepthRange,
+    pub range2_count: u8,
+    pub range3: PsDepthRange,
+    pub range3_count: u8,
 }

@@ -1,5 +1,6 @@
 use std::ffi::CString;
 use std::mem::MaybeUninit;
+use std::num::NonZeroU8;
 
 use crate::enums::*;
 use crate::raw_funcs::*;
@@ -121,9 +122,21 @@ pub fn get_frame(
     session_index: u32,
     frame_type: PsFrameType,
 ) -> Result<PsFrame, PsReturnStatus> {
-    let mut frame: MaybeUninit<PsFrame> = MaybeUninit::uninit();
-    match unsafe { Ps2_GetFrame(device_handle, session_index, frame_type, frame.as_mut_ptr()) } {
-        0 => Ok(unsafe { frame.assume_init() }),
+    let mut frame_data: [u8; 0] = [0; 0];
+    let mut frame = PsFrame {
+        frame_index: 0,
+        frame_type,
+        pixel_format: PsPixelFormat::Bgr888,
+        imu_frame_no: 0,
+        frame_data: frame_data.as_mut_ptr(),
+        data_len: 0,
+        exposure_time: 0.0,
+        depth_range: PsDepthRange::Unknown,
+        width: 0,
+        height: 0,
+    };
+    match unsafe { Ps2_GetFrame(device_handle, session_index, frame_type, &mut frame) } {
+        0 => Ok(frame),
         n => Err(n),
     }
 }
@@ -143,9 +156,9 @@ pub fn get_data_mode(
     device_handle: PsDeviceHandle,
     session_index: u32,
 ) -> Result<PsDataMode, PsReturnStatus> {
-    let mut data_mode: MaybeUninit<PsDataMode> = MaybeUninit::uninit();
-    match unsafe { Ps2_GetDataMode(device_handle, session_index, data_mode.as_mut_ptr()) } {
-        0 => Ok(unsafe { data_mode.assume_init() }),
+    let mut data_mode: PsDataMode = PsDataMode::DepthAndRgb30Fps;
+    match unsafe { Ps2_GetDataMode(device_handle, session_index, &mut data_mode) } {
+        0 => Ok(data_mode),
         n => Err(n),
     }
 }
@@ -154,9 +167,9 @@ pub fn get_depth_range(
     device_handle: PsDeviceHandle,
     session_index: u32,
 ) -> Result<PsDepthRange, PsReturnStatus> {
-    let mut depth_range: MaybeUninit<PsDepthRange> = MaybeUninit::uninit();
-    match unsafe { Ps2_GetDepthRange(device_handle, session_index, depth_range.as_mut_ptr()) } {
-        0 => Ok(unsafe { depth_range.assume_init() }),
+    let mut depth_range: PsDepthRange = PsDepthRange::Unknown;
+    match unsafe { Ps2_GetDepthRange(device_handle, session_index, &mut depth_range) } {
+        0 => Ok(depth_range),
         n => Err(n),
     }
 }
@@ -247,20 +260,33 @@ pub fn get_property(
     device_handle: PsDeviceHandle,
     session_index: u32,
     property_type: PsPropertyType,
-) -> Result<Vec<u8>, PsReturnStatus> {
+) -> Result<PropertyValue, PsReturnStatus> {
     let mut size: i32 = 128;
-    let mut data_buf: Box<[u8]> = vec![0u8; size as usize].into_boxed_slice();
+    let mut data_buf = Vec::<i8>::with_capacity(size as usize);
     let data = data_buf.as_mut_ptr();
-    match unsafe {
-        Ps2_GetProperty(
-            device_handle,
-            session_index,
-            property_type,
-            data as *mut std::ffi::c_void,
-            &mut size,
-        )
-    } {
-        0 => Ok(unsafe { Vec::from_raw_parts(data, size as usize, size as usize) }),
+    match unsafe { Ps2_GetProperty(device_handle, session_index, property_type, data, &mut size) } {
+        0 => match property_type {
+            PsPropertyType::SerialNumber
+            | PsPropertyType::FirmwareVersion
+            | PsPropertyType::HardwareVersion => {
+                if data.is_null() {
+                    Err(255)
+                } else {
+                    let c_char_slice = unsafe { std::slice::from_raw_parts(data, size as usize) };
+                    let vec_nz_u8 = c_char_slice
+                        .iter()
+                        .map(|&x| x as u8)
+                        .take_while(|&x| x != 0)
+                        .map(|x| NonZeroU8::new(x).unwrap())
+                        .collect::<Vec<NonZeroU8>>();
+                    let cstring = CString::from(vec_nz_u8);
+                    Ok(PropertyValue::StringValue(cstring))
+                }
+            }
+            PsPropertyType::DataMode
+            | PsPropertyType::DataModeList
+            | PsPropertyType::DepthRangeList => unimplemented!(),
+        },
         n => Err(n),
     }
 }
@@ -294,12 +320,163 @@ pub fn set_property(
 pub fn get_camera_parameters(
     device_handle: PsDeviceHandle,
     session_index: u32,
+    sensor_type: PsSensorType,
 ) -> Result<PsCameraParameters, PsReturnStatus> {
     let mut camera_parameters: MaybeUninit<PsCameraParameters> = MaybeUninit::uninit();
     match unsafe {
-        Ps2_GetCameraParameters(device_handle, session_index, camera_parameters.as_mut_ptr())
+        Ps2_GetCameraParameters(
+            device_handle,
+            session_index,
+            sensor_type,
+            camera_parameters.as_mut_ptr(),
+        )
     } {
         0 => Ok(unsafe { camera_parameters.assume_init() }),
+        n => Err(n),
+    }
+}
+
+pub fn set_wdr_output_mode(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    wdr_mode: PsWdrOutputMode,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetWDROutputMode(device_handle, session_index, &wdr_mode) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_wdr_style(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    wdr_style: PsWdrStyle,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetWDRStyle(device_handle, session_index, wdr_style) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_rgb_frame_enabled(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetRgbFrameEnabled(device_handle, session_index, enabled) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_depth_distortion_correction_enabled(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetDepthDistortionCorrectionEnabled(device_handle, session_index, enabled) }
+    {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_ir_distortion_correction_enabled(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetIrDistortionCorrectionEnabled(device_handle, session_index, enabled) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_rgb_distortion_correction_enabled(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetRGBDistortionCorrectionEnabled(device_handle, session_index, enabled) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_compute_real_depth_correction_enabled(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetComputeRealDepthCorrectionEnabled(device_handle, session_index, enabled) }
+    {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_spatial_filter_enabled(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetSpatialFilterEnabled(device_handle, session_index, enabled) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_time_filter_enabled(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetTimeFilterEnabled(device_handle, session_index, enabled) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_mapper_enabled_rgb_to_depth(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetMapperEnabledRGBToDepth(device_handle, session_index, enabled) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_mapper_enabled_depth_to_rgb(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    enabled: bool,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetMapperEnabledDepthToRGB(device_handle, session_index, enabled) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_rgb_resolution(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    resolution: PsResolution,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetRGBResolution(device_handle, session_index, resolution) } {
+        0 => Ok(()),
+        n => Err(n),
+    }
+}
+
+pub fn set_color_pixel_format(
+    device_handle: PsDeviceHandle,
+    session_index: u32,
+    pixel_format: PsPixelFormat,
+) -> Result<(), PsReturnStatus> {
+    match unsafe { Ps2_SetColorPixelFormat(device_handle, session_index, pixel_format) } {
+        0 => Ok(()),
         n => Err(n),
     }
 }

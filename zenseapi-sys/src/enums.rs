@@ -1,3 +1,4 @@
+use std::ffi::CString;
 use std::os::raw::c_int;
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
@@ -93,7 +94,7 @@ pub enum PsPropertyType {
 #[repr(C)]
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum PropertyValue {
-    StringValue(String),
+    StringValue(CString),
     Uint8Value(u8),
     Int32ValueList(Vec<i32>),
 }
@@ -114,7 +115,7 @@ pub enum PsFrameType {
 
 #[repr(C)]
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum SensorType {
+pub enum PsSensorType {
     DepthSensor = 1,
     RgbSensor = 2,
 }

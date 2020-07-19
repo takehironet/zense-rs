@@ -1,48 +1,22 @@
 use std::os::raw::c_int;
 
-pub use zenseapi_sys::enums::{GmmGainEffectiveTime, PropertyValue, SensorType, ZenseError};
-use zenseapi_sys::enums::{PsDataMode, PsDepthRange, PsFrameType, PsPixelFormat, PsPropertyType};
+pub use zenseapi_sys::enums::{GmmGainEffectiveTime, PropertyValue, ZenseError};
+use zenseapi_sys::enums::{
+    PsDataMode, PsDepthRange, PsFilterType, PsFrameType, PsPixelFormat, PsPropertyType,
+    PsResolution, PsSensorType, PsStreamType, PsWdrStyle, PsWdrTotalRange,
+};
 
 pub type DepthRange = PsDepthRange;
 pub type FrameType = PsFrameType;
 pub type PixelFormat = PsPixelFormat;
 pub type DataMode = PsDataMode;
 pub type PropertyType = PsPropertyType;
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum FilterType {
-    ComputeRealDepthFilter,
-    SmoothingFilter,
-}
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum WdrTotalRange {
-    WdrTotalRangeTwo = 2,
-    WdrTotalRangeThree = 3,
-}
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum WdrStyle {
-    Fusion,
-    Alternation,
-}
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum StreamType {
-    Depth,
-    Ir,
-    Rgb,
-    Audio,
-    Imu,
-}
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum Resolution {
-    Res1920x1080,
-    Res1280x720,
-    Res640x480,
-    Res640x360,
-}
+pub type SensorType = PsSensorType;
+pub type WdrTotalRange = PsWdrTotalRange;
+pub type WdrStyle = PsWdrStyle;
+pub type FilterType = PsFilterType;
+pub type StreamType = PsStreamType;
+pub type Resolution = PsResolution;
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum LinkType {

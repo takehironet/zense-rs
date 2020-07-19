@@ -1,15 +1,19 @@
 use std::convert::TryInto;
+use std::ffi::CString;
 
-use raw::types::{PsCameraParameters, PsDeviceHandle};
+use raw::types::{PsCameraParameters, PsDeviceHandle, PsWdrOutputMode};
 use zenseapi_sys as raw;
 
-use crate::enums::{GmmGainEffectiveTime, PropertyType, PropertyValue};
+use crate::enums::{
+    GmmGainEffectiveTime, PropertyType, PropertyValue, Resolution, SensorType, WdrStyle,
+};
 use crate::{
     ConnectStatus, DataMode, DepthRange, DeviceType, FrameType, PixelFormat, ZenseError,
     ZenseResult,
 };
 
 pub type CameraParameters = PsCameraParameters;
+pub type WdrOutputMode = PsWdrOutputMode;
 
 macro_rules! handle_check {
     ($self_:ident, $b:expr) => {
@@ -27,8 +31,8 @@ macro_rules! handle_check {
 pub struct DeviceInfo {
     pub session_count: i64,
     pub device_type: DeviceType,
-    pub uri: String,
-    pub fw: String,
+    pub uri: CString,
+    pub fw: CString,
     pub status: ConnectStatus,
 }
 
@@ -212,19 +216,8 @@ impl DeviceHandle {
         handle_check!(
             self,
             match raw::get_property(self.device_handle, session_index, property_type) {
-                Ok(property_value) => match property_type {
-                    PropertyType::SerialNumber
-                    | PropertyType::FirmwareVersion
-                    | PropertyType::HardwareVersion => match String::from_utf8(property_value) {
-                        Ok(s) => Ok(PropertyValue::StringValue(s)),
-                        Err(_) => Err(ZenseError::RuntimeError),
-                    },
-                    PropertyType::DataMode
-                    | PropertyType::DataModeList
-                    | PropertyType::DepthRangeList => {
-                        todo!("missing DataMode, DataModeList, DepthRangeList implementation")
-                    }
-                },
+                Ok(PropertyValue::StringValue(cstr)) => Ok(PropertyValue::StringValue(cstr)),
+                Ok(_) => todo!("missing DataMode, DataModeList, DepthRangeList implementation"),
                 Err(n) => Err(ZenseError::from_int(n)),
             }
         )
@@ -246,10 +239,14 @@ impl DeviceHandle {
         // )
     }
 
-    pub fn get_camera_parameters(&self, session_index: u32) -> ZenseResult<CameraParameters> {
+    pub fn get_camera_parameters(
+        &self,
+        session_index: u32,
+        sensor_type: SensorType,
+    ) -> ZenseResult<CameraParameters> {
         handle_check!(
             self,
-            match raw::get_camera_parameters(self.device_handle, session_index) {
+            match raw::get_camera_parameters(self.device_handle, session_index, sensor_type) {
                 Ok(camera_parameters) => {
                     let error = 0.001f64;
                     if (camera_parameters.cx - f64::default()).abs() < error
@@ -273,6 +270,143 @@ impl DeviceHandle {
                 Err(n) => Err(ZenseError::from_int(n)),
             }
         )
+    }
+
+    pub fn set_wdr_output_mode(
+        &self,
+        session_index: u32,
+        wdr_mode: WdrOutputMode,
+    ) -> ZenseResult<()> {
+        match raw::set_wdr_output_mode(self.device_handle, session_index, wdr_mode) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_wdr_style(&self, session_index: u32, wdr_style: WdrStyle) -> ZenseResult<()> {
+        match raw::set_wdr_style(self.device_handle, session_index, wdr_style) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_rgb_frame_enabled(&self, session_index: u32, enabled: bool) -> ZenseResult<()> {
+        match raw::set_rgb_frame_enabled(self.device_handle, session_index, enabled) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_depth_distortion_correction_enabled(
+        &self,
+        session_index: u32,
+        enabled: bool,
+    ) -> ZenseResult<()> {
+        match raw::set_depth_distortion_correction_enabled(
+            self.device_handle,
+            session_index,
+            enabled,
+        ) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_ir_distortion_correction_enabled(
+        &self,
+        session_index: u32,
+        enabled: bool,
+    ) -> ZenseResult<()> {
+        match raw::set_ir_distortion_correction_enabled(self.device_handle, session_index, enabled)
+        {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_rgb_distortion_correction_enabled(
+        &self,
+        session_index: u32,
+        enabled: bool,
+    ) -> ZenseResult<()> {
+        match raw::set_rgb_distortion_correction_enabled(self.device_handle, session_index, enabled)
+        {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_compute_real_depth_correction_enabled(
+        &self,
+        session_index: u32,
+        enabled: bool,
+    ) -> ZenseResult<()> {
+        match raw::set_compute_real_depth_correction_enabled(
+            self.device_handle,
+            session_index,
+            enabled,
+        ) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_spatial_filter_enabled(&self, session_index: u32, enabled: bool) -> ZenseResult<()> {
+        match raw::set_spatial_filter_enabled(self.device_handle, session_index, enabled) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_time_filter_enabled(&self, session_index: u32, enabled: bool) -> ZenseResult<()> {
+        match raw::set_time_filter_enabled(self.device_handle, session_index, enabled) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_mapper_enabled_rgb_to_depth(
+        &self,
+        session_index: u32,
+        enabled: bool,
+    ) -> ZenseResult<()> {
+        match raw::set_mapper_enabled_rgb_to_depth(self.device_handle, session_index, enabled) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_mapper_enabled_depth_to_rgb(
+        &self,
+        session_index: u32,
+        enabled: bool,
+    ) -> ZenseResult<()> {
+        match raw::set_mapper_enabled_depth_to_rgb(self.device_handle, session_index, enabled) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_rgb_resolution(
+        &self,
+        session_index: u32,
+        resolution: Resolution,
+    ) -> ZenseResult<()> {
+        match raw::set_rgb_resolution(self.device_handle, session_index, resolution) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
+    }
+
+    pub fn set_color_pixel_format(
+        &self,
+        session_index: u32,
+        pixel_format: PixelFormat,
+    ) -> ZenseResult<()> {
+        match raw::set_color_pixel_format(self.device_handle, session_index, pixel_format) {
+            Ok(()) => Ok(()),
+            Err(n) => Err(ZenseError::from_int(n)),
+        }
     }
 }
 
