@@ -6,6 +6,10 @@ edition = "2018"
 publish = false
 
 [[bin]]
+name = "zense-open-close"
+path = "src/open-close.rs"
+
+[[bin]]
 name = "zense-camera-params"
 path = "src/camera-params.rs"
 
