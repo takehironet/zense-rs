@@ -41,30 +41,23 @@ fn main() {
                 }
                 _ => String::from(""),
             };
-            match handle.get_camera_parameters(session_index, SensorType::DepthSensor) {
-                Ok(p) => {
-                    println!("[{}_Factory]", serial_number);
-                    println!("fx = {}", p.fx);
-                    println!("fy = {}", p.fy);
-                    println!("cx = {}", p.cx);
-                    println!("cy = {}", p.cy);
-                    println!("k1 = {}", p.k1);
-                    println!("k2 = {}", p.k2);
-                    println!("p1 = {}", p.p1);
-                    println!("p2 = {}", p.p2);
-                    println!("k3 = {}", p.k3);
-                    println!("k4 = {}", p.k4);
-                    println!("k5 = {}", p.k5);
-                    println!("k6 = {}", p.k6);
-                    println!();
-                }
-                Err(_) => {
-                    let _ = handle.close_device();
-                    let _ = zenseapi::shutdown();
-                }
+            if let Ok(p) = handle.get_camera_parameters(session_index, SensorType::DepthSensor) {
+                println!("[{}_Factory]", serial_number);
+                println!("fx = {}", p.fx);
+                println!("fy = {}", p.fy);
+                println!("cx = {}", p.cx);
+                println!("cy = {}", p.cy);
+                println!("k1 = {}", p.k1);
+                println!("k2 = {}", p.k2);
+                println!("p1 = {}", p.p1);
+                println!("p2 = {}", p.p2);
+                println!("k3 = {}", p.k3);
+                println!("k4 = {}", p.k4);
+                println!("k5 = {}", p.k5);
+                println!("k6 = {}", p.k6);
+                println!();
             };
             let _ = handle.close_device();
-            let _ = zenseapi::shutdown();
         }
     });
     let _ = zenseapi::shutdown();
