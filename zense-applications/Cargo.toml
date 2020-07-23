@@ -13,5 +13,9 @@ path = "src/open-close.rs"
 name = "zense-camera-params"
 path = "src/camera-params.rs"
 
+[[bin]]
+name = "zense-serialnumber"
+path = "./src/serialnumber.rs"
+
 [dependencies]
 zenseapi = { path = "../zenseapi" }
