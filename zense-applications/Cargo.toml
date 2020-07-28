@@ -17,5 +17,10 @@ path = "src/camera-params.rs"
 name = "zense-serialnumber"
 path = "./src/serialnumber.rs"
 
+[[bin]]
+name = "zense-getserial-reset-onfail"
+path = "./src/getserial-reset-onfail.rs"
+
 [dependencies]
 zenseapi = { path = "../zenseapi" }
+rusb = "^0.6"
