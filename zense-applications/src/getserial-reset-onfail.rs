@@ -120,7 +120,14 @@ fn main() {
         Ok(h) => h,
         Err(_) => {
             let _ = zenseapi::shutdown();
-            panic!("Failed to open a device {}", device_file_name);
+            match usb_info {
+                Some(i) => {
+                    let _ = reset_usb(i);
+                    ()
+                }
+                None => (),
+            };
+            panic!("Failed to open a device {}", device_file_name)
         }
     };
     let serial_number = match handle.get_property(0, PropertyType::SerialNumber) {
